@@ -14,30 +14,42 @@ df = pd.read_excel(
 
 
 
-st.header("A Analysis of Messi and Ronaldo's Season till their time in LA LIGA including the champions league stats!")
+st.header("Analysis of Messi and Ronaldo's Season till their time in LA LIGA including the champions league stats!")
 
 
 
+if 'selected_players' not in st.session_state:
+    st.session_state.selected_players = df["Player"].unique()
 
+if 'selected_seasons' not in st.session_state:
+    st.session_state.selected_seasons = df["Season"].unique()
 
+# Sidebar filters
 st.sidebar.header("Please filter here:")
-player = st.sidebar.multiselect(
+selected_players = st.sidebar.multiselect(
     "Select the player:",
     options=df["Player"].unique(),
-    default=df["Player"].unique()
+    default=st.session_state.selected_players,  # Use session state
+    key='players_filter'  # Unique key for the widget to store state
 )
 
-season = st.sidebar.multiselect(
+selected_seasons = st.sidebar.multiselect(
     "Select the season:",
     options=df["Season"].unique(),
-    default=df["Season"].unique()
+    default=st.session_state.selected_seasons,  # Use session state
+    key='seasons_filter'  # Unique key for the widget to store state
 )
 
+# Update session state on change
+st.session_state.selected_players = selected_players
+st.session_state.selected_seasons = selected_seasons
+
+# Filter data based on selections
 df_selection = df.query(
-    "Player == @player & Season == @season"
-    
+    "Player == @selected_players & Season == @selected_seasons"
 )
 
+# Display filtered data
 st.dataframe(df_selection)
 
 
@@ -60,14 +72,37 @@ with middle_column:
 
 with right_column:
     st.subheader("Total Champions league assists")
-    st.subheader(f"Goals:{total_cl_asis:,}")
+    st.subheader(f"Assists:{total_cl_asis:,}")
 
 with right1_column:
     st.subheader("Total la liga assists")
-    st.subheader(f"Goals:{total_ll_asis:,}")
+    st.subheader(f"Assists:{total_ll_asis:,}")
 
 st.markdown("---")
 
+st.subheader("Top Performance Highlights")
+
+top_goals = df_selection.loc[df_selection['Liga_Goals'].idxmax()]
+top_assists = df_selection.loc[df_selection['Liga_Asts'].idxmax()]
+
+st.write(f"**Top Goal Scoring Season**: {top_goals['Player']} in {top_goals['Season']} with {top_goals['Liga_Goals']} La Liga goals.")
+st.write(f"**Top Assisting Season**: {top_assists['Player']} in {top_assists['Season']} with {top_assists['Liga_Asts']} La Liga assists.")
+
+
+st.markdown("---")
+
+st.subheader("Historical Milestones")
+
+milestone_goals = df.groupby("Player").apply(lambda x: x.loc[x["Liga_Goals"].idxmax()])
+milestone_assists = df.groupby("Player").apply(lambda x: x.loc[x["Liga_Asts"].idxmax()])
+
+st.write("### Highest Goal Seasons")
+st.table(milestone_goals[['Player', 'Season', 'Liga_Goals', 'CL_Goals']])
+
+st.write("### Highest Assist Seasons")
+st.table(milestone_assists[['Player', 'Season', 'Liga_Asts', 'CL_Asts']])
+
+st.markdown("---")
 
 hide_st_style = """
 <style>
@@ -77,16 +112,55 @@ hide_st_style = """
   
   </style>
 """
-st.markdown(hide_st_style,unsafe_allow_html=True)
 
-'''
+st.subheader("Goals Comparison per Season")
+
+fig_goals = px.bar(
+    df_selection,
+    x="Season",
+    y=["Liga_Goals", "CL_Goals"],
+    color="Player",
+    barmode="group",
+    title="Goals per Season in La Liga and Champions League",
+    labels={"value": "Goals", "variable": "Competition"},
+)
+st.plotly_chart(fig_goals, use_container_width=True)
+
+st.subheader("Goals Progression Over Seasons")
+
+fig_line = px.line(
+    df_selection,
+    x="Season",
+    y=["Liga_Goals", "CL_Goals"],
+    color="Player",
+    markers=True,
+    title="Goals Progression in La Liga and Champions League",
+    labels={"value": "Goals", "variable": "Competition"},
+)
+st.plotly_chart(fig_line, use_container_width=True)
+
+st.subheader("Goals vs Assists Distribution")
+
+fig_pie = px.pie(
+    df_selection,
+    names=["Liga_Goals", "Liga_Asts", "CL_Goals", "CL_Asts"],
+    values=[total_ll_goals, total_ll_asis, total_cl_goals, total_cl_asis],
+    title="Goals vs Assists in La Liga and Champions League",
+)
+st.plotly_chart(fig_pie, use_container_width=True)
 
 
-    [![Repo](https://badgen.net/badge/icon/GitHub?icon=github&label)](https://github.com/Aviral1611?tab=repositories) 
 
-'''
-st.markdown("<br>",unsafe_allow_html=True)
 
+
+# Custom CSS to hide Streamlit menu and footer
+hide_st_style = """
+<style>
+  #MainMenu {visibility: hidden;}
+  footer {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 
 
