@@ -2,6 +2,8 @@ import pandas as pd
 import plotly_express as px
 import streamlit as st
 
+
+
 st.set_page_config(page_title="Football",page_icon=":wave:",layout="wide")
 
 
@@ -24,7 +26,19 @@ if 'selected_players' not in st.session_state:
 if 'selected_seasons' not in st.session_state:
     st.session_state.selected_seasons = df["Season"].unique()
 
+st.markdown(
+    """
+    <style>
+    .sidebar .sidebar-content {
+        color: white;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Sidebar filters
+st.sidebar.markdown("[**Messi**](messi.py)")
 st.sidebar.header("Please filter here:")
 selected_players = st.sidebar.multiselect(
     "Select the player:",
@@ -80,14 +94,19 @@ with right1_column:
 
 st.markdown("---")
 
-st.subheader("Top Performance Highlights")
+if not selected_players or not selected_seasons:
+    st.write("Please select at least one player and one season to view the analysis.")
+else:
+    # Check if df_selection is empty after filtering
+    if df_selection.empty:
+        st.write("No data available for the selected filters.")
+    else:
+        # Proceed with calculating top goals and assists
+        top_goals = df_selection.loc[df_selection['Liga_Goals'].idxmax()]
+        top_assists = df_selection.loc[df_selection['Liga_Asts'].idxmax()]
 
-top_goals = df_selection.loc[df_selection['Liga_Goals'].idxmax()]
-top_assists = df_selection.loc[df_selection['Liga_Asts'].idxmax()]
-
-st.write(f"**Top Goal Scoring Season**: {top_goals['Player']} in {top_goals['Season']} with {top_goals['Liga_Goals']} La Liga goals.")
-st.write(f"**Top Assisting Season**: {top_assists['Player']} in {top_assists['Season']} with {top_assists['Liga_Asts']} La Liga assists.")
-
+        st.write(f"**Top Goal Scoring Season**: {top_goals['Player']} in {top_goals['Season']} with {top_goals['Liga_Goals']} La Liga goals.")
+        st.write(f"**Top Assisting Season**: {top_assists['Player']} in {top_assists['Season']} with {top_assists['Liga_Asts']} La Liga assists.")
 
 st.markdown("---")
 
@@ -161,9 +180,3 @@ hide_st_style = """
 </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-
-
-
-
-
-
